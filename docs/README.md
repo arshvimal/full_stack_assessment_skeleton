@@ -135,6 +135,8 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 ### solution
 
+- Before we solve the problem, lets go over how to solve it. We have been provided all the data in `user_home` table. Going over it, we can see that the user data and house data is repeating. This is not optimal, so we will seperate the houses and the users into different tables, and then create a third table to keep track of the user-home relations.
+
 - First we have to refactor and normalize the data into different resonable tables. For that, lets go ahead and create the various tables.
 
   - Create `user` and `home` tables to keep track of the list of users and homes.
