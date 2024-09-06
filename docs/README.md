@@ -367,7 +367,356 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 ### solution
 
-> explain briefly your solution for this problem here
+- To run the solution directly, clone the backend folder and follow the steps
+
+  - Install the dependencies by going to the homellc-api folder.
+
+    ```bash
+    npm install
+    ```
+
+  - And then run the below.
+
+    ```bash
+    npm run start:dev
+    ```
+
+- To create the backend, let's followed the recommended tech stack and create a REST API with NestJS and TypeORM. Let's set up the project.
+
+  - Install NestJS CLI
+
+    ```bash
+    npm i -g @nestjs/cli
+    ```
+
+  - Create a NestJS project
+
+    ```bash
+    nest new homellc-api
+    ```
+
+  - And now lets install the required dependencies.
+    ```bash
+    npm i @nestjs/config @nestjs/typeorm typeorm class-validator mysql2 dotenv
+    ```
+
+- I am gonna go ahead and delete the default service and controller from the project as we don't need it and will create our own later on.
+
+- Now that we have the project set up, we are gonna set up TypeORM and get MySQL credentials from the `.env` file. Let's do that.
+
+  - Create a `.env` file in the root directory with all the credentials.
+    ```env
+    MYSQL_HOST=127.0.0.1
+    MYSQL_PORT=3306
+    MYSQL_USER=db_user
+    MYSQL_PASSWORD=6equj5_db_user
+    MYSQL_DATABASE=home_db
+    ```
+  - Import and use ConfigModule to access the credentials from `.env` in `app.module.ts`
+
+    ```ts
+    @Module({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+        }),
+      ],
+      controllers: [],
+      providers: [],
+    })
+    export class AppModule {}
+    ```
+
+  - Now we can import ConfigService and use the credentials in TypeOrmModule.
+    ```ts
+    @Module({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+        }),
+        TypeOrmModule.forRootAsync({
+          useFactory: (configService: ConfigService) => ({
+            type: "mysql",
+            host: configService.getOrThrow("MYSQL_HOST"),
+            port: configService.getOrThrow("MYSQL_PORT"),
+            username: configService.getOrThrow("MYSQL_USER"),
+            password: configService.getOrThrow("MYSQL_PASSWORD"),
+            database: configService.getOrThrow("MYSQL_DATABASE"),
+            entities: [],
+            synchronize: true,
+          }),
+          inject: [ConfigService],
+        }),
+      ],
+      controllers: [],
+      providers: [],
+    })
+    export class AppModule {}
+    ```
+
+- Now that TypeORM is set up, we can go ahead and create and register the entities for our database.
+
+  - Create a folder `typeorm/entities`.
+
+  - Create `Home` entity in `home.ts`.
+
+    ```ts
+    @Entity({ name: "home" })
+    export class Home {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column({ length: 255, nullable: false })
+      street_address: string;
+
+      @Column({ length: 50, nullable: true })
+      state: string;
+
+      @Column({ length: 10, nullable: true })
+      zip: string;
+
+      @Column({ type: "float", nullable: true })
+      sqft: number;
+
+      @Column({ type: "int", nullable: true })
+      beds: number;
+
+      @Column({ type: "int", nullable: true })
+      baths: number;
+
+      @Column({ type: "float", nullable: true })
+      list_price: number;
+    }
+    ```
+
+  - Create `User` entity in `user.ts`.
+
+    ```ts
+    @Entity({ name: "user" })
+    export class User {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @Column({ length: 100, nullable: false })
+      username: string;
+
+      @Column({ length: 100, nullable: false })
+      email: string;
+    }
+    ```
+
+  - Import the `Home` and `User` entities and create the `HomeUserRelation` entity in `home-user-relation.ts`.
+
+    ```ts
+    @Entity({ name: "user_home_relation" })
+    export class UserHomeRelation {
+      @PrimaryGeneratedColumn()
+      id: number;
+
+      @ManyToOne(() => User)
+      @JoinColumn({ name: "user_id" })
+      user: User;
+
+      @ManyToOne(() => Home)
+      @JoinColumn({ name: "home_id" })
+      home: Home;
+    }
+    ```
+
+  - Now let's register the entities in `app.module.ts`. Modify the `entities: []` parameter inside `TypeOrmModule` with the above entities.
+    ```ts
+    @Module({
+      imports: [
+        ConfigModule.forRoot({
+          isGlobal: true,
+        }),
+        TypeOrmModule.forRootAsync({
+          useFactory: (configService: ConfigService) => ({
+            type: "mysql",
+            host: configService.getOrThrow("MYSQL_HOST"),
+            port: configService.getOrThrow("MYSQL_PORT"),
+            username: configService.getOrThrow("MYSQL_USER"),
+            password: configService.getOrThrow("MYSQL_PASSWORD"),
+            database: configService.getOrThrow("MYSQL_DATABASE"),
+            entities: [User, Home, UserHomeRelation],
+            synchronize: true,
+          }),
+          inject: [ConfigService],
+        }),
+      ],
+      controllers: [],
+      providers: [],
+    })
+    export class AppModule {}
+    ```
+
+- Now that the entities are registered, we can start creating the endpoints.
+
+  - I want to seperate the `user` and `home` endpoints into different modules. So let's create the modules using the below commands.
+
+    ```bash
+    nest g module user
+    nest g module home
+    ```
+
+  - Create the Controllers and Services for the above modules.
+
+    ```bash
+    nest g controller /user/controllers/user
+    nest g controller /home/controllers/home
+    nest g service /user/service/user
+    nest g service /home/service/home
+    ```
+
+- Let's go ahead and import the entities into the modules that they will be used in.
+
+  - Import `User` entity in the user module by adding the `imports` parameter in `user.module.ts` inside the user module directory.
+
+    ```ts
+    @Module({
+      imports: [TypeOrmModule.forFeature([User])],
+      controllers: [HomeController],
+      providers: [HomeService],
+    })
+    export class HomeModule {}
+    ```
+
+  - Import `Home` and `UserHomeRelation` entity in the home module by adding the `imports` parameter in `home.module.ts` inside the home module directory.
+
+    ```ts
+    @Module({
+      imports: [
+        TypeOrmModule.forFeature([Home]),
+        TypeOrmModule.forFeature([UserHomeRelation]),
+      ],
+      controllers: [HomeController],
+      providers: [HomeService],
+    })
+    export class HomeModule {}
+    ```
+
+- Now lets create the controllers and services for all the endpoints.
+
+  - For the `/user` endpoints, add the `findAll()` and `findByHome()` functions in `UserService` class in the file `user.service.ts` file in the user service directory (_/user/service/user/_).
+
+    ```ts
+    @Injectable()
+    export class UserService {
+      constructor(
+        @InjectRepository(User)
+        private userRepository: Repository<User>
+      ) {}
+
+      findAll() {
+        return this.userRepository.find();
+      }
+      findByHome(homeId: number) {
+        return this.userRepository
+          .createQueryBuilder("user")
+          .innerJoin("user_home_relation", "uhr", "uhr.user_id = user.id")
+          .where("uhr.home_id = :homeId", { homeId })
+          .getMany();
+      }
+    }
+    ```
+
+  - And then setup the controllers for the `/user` endpoints in `UserController` class inside `user.controller.ts` located inside the user controller directory (_/user/controller/user/_).
+
+    ```ts
+    @Controller("user")
+    export class UserController {
+      constructor(private userService: UserService) {}
+
+      @Get("find-all")
+      findAll() {
+        return this.userService.findAll();
+      }
+
+      @Get("find-by-home/:homeId")
+      findByHome(@Param("homeId") homeId: number) {
+        return this.userService.findByHome(homeId);
+      }
+    }
+    ```
+
+  - For the `/home` endpoints, add the `findByUser()` and `updateUsers()` functions in `HomeService` class in the file `home.service.ts` file in the home service directory (_/home/service/home/_).
+
+    ```ts
+    @Injectable()
+    export class HomeService {
+      constructor(
+        @InjectRepository(Home)
+        private homeRepository: Repository<Home>,
+        @InjectRepository(UserHomeRelation)
+        private userHomeRelationRepository: Repository<UserHomeRelation>
+      ) {}
+
+      findByUser(userId: number, page: number, pageSize: number) {
+        return this.homeRepository
+          .createQueryBuilder("home")
+          .innerJoin("user_home_relation", "uhr", "uhr.home_id = home.id")
+          .where("uhr.user_id = :userId", { userId })
+          .skip((page - 1) * pageSize)
+          .take(pageSize)
+          .getMany();
+      }
+
+      async updateUsers(homeId: number, userIds: number[]) {
+        await this.userHomeRelationRepository.delete({ home: { id: homeId } });
+        const relations = userIds.map((userId) => ({
+          home: { id: homeId },
+          user: { id: userId },
+        }));
+        await this.userHomeRelationRepository.save(relations);
+        return { message: "Updated Successfully" };
+      }
+    }
+    ```
+
+  - Before we setup the home controllers, lets create a DTO to sanitize the `updateUsers` input. Add `update-users.dto.ts` file inside `/dto/` folder in the root directory.
+
+    ```ts
+    export class UpdateUsersDto {
+      @IsInt()
+      homeId: number;
+
+      @IsArray()
+      @ArrayNotEmpty()
+      @ArrayUnique()
+      userIds: number[];
+    }
+    ```
+
+  - Then setup the controllers for the `/home` endpoints in `HomeController` class inside `home.controller.ts` located inside the home controller directory (_/home/controller/home/_).
+
+    ```ts
+    @Controller("home")
+    export class HomeController {
+      constructor(private homeService: HomeService) {}
+
+      @Get("find-by-user/:userId")
+      findByUser(
+        @Param("userId") userId: number,
+        @Query("page") page: number = 1,
+        @Query("pageSize") pageSize: number = 50
+      ) {
+        return this.homeService.findByUser(userId, page, pageSize);
+      }
+
+      @Put("update-users")
+      updateUsers(@Body() updateUsersDto: UpdateUsersDto) {
+        return this.homeService.updateUsers(
+          updateUsersDto.homeId,
+          updateUsersDto.userIds
+        );
+      }
+    }
+    ```
+
+- All the endpoints are ready, now we can run the API using the below command. It will run on port **3000** by default
+  ```bash
+  npm run start:dev
+  ```
 
 ## Submission Guidelines
 
