@@ -144,8 +144,8 @@ docker-compose -f docker-compose.initial.yml up --build -d
     ```sql
     CREATE TABLE user (
         id int(11) NOT NULL AUTO_INCREMENT,
-        username varchar(100) DEFAULT NULL,
-        email varchar(100) DEFAULT NULL,
+        username varchar(100) NOT NULL,
+        email varchar(100) NOT NULL,
         PRIMARY KEY (id)
     )
 
@@ -163,7 +163,7 @@ docker-compose -f docker-compose.initial.yml up --build -d
     ```
 
   - Create a table `user_home_relation` to keep track of which users are related to what houses.
-  
+
     ```sql
     CREATE TABLE user_home_relation (
         id int(11) NOT NULL AUTO_INCREMENT,
@@ -183,12 +183,14 @@ docker-compose -f docker-compose.initial.yml up --build -d
     INSERT INTO user (username, email)
     SELECT DISTINCT username, email FROM user_home;
     ```
+
   - Move the different homes to the `home` table.
 
     ```sql
     INSERT INTO home (street_address, state, zip, sqft, beds, baths, list_price)
     SELECT DISTINCT street_address, state, zip, sqft, beds, baths, list_price FROM user_home;
     ```
+
   - Now lets move all the unique relations to the `user_home_relation` table. For this, we will join the `user` and `home` tables to the `user_home` table to extract the unique `user_id` and `home_id` relations.
 
     ```sql

@@ -1,12 +1,14 @@
+DROP TABLE IF EXISTS user_home_relation;
 DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS home;
+
 CREATE TABLE user (
   id int(11) NOT NULL AUTO_INCREMENT,
-  username varchar(100) DEFAULT NULL,
-  email varchar(100) DEFAULT NULL,
+  username varchar(100) NOT NULL,
+  email varchar(100) NOT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS home;
 CREATE TABLE home (
   id int(11) NOT NULL AUTO_INCREMENT,
   street_address varchar(255) NOT NULL,
@@ -19,7 +21,6 @@ CREATE TABLE home (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-DROP TABLE IF EXISTS user_home_relation;
 CREATE TABLE user_home_relation (
   id int(11) NOT NULL AUTO_INCREMENT,
   user_id int(11) NOT NULL,
