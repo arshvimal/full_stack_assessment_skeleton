@@ -367,6 +367,31 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 ### solution
 
+- Notes:
+
+  - The `/home/find-by-user` endpoint supports pagination. The endpoint returns the results, current page, total pages and total homes. You can choose a particular page by using the url query `page`.
+
+    ```url
+    localhost:3000/home/find-by-user/10?page=11
+    ```
+
+  - The `/home/update-users` takes home id and list of user ids as input.
+
+    ```json
+    // Example
+    {
+      "homeId": 131,
+      "userIds": [2, 10]
+    }
+
+    // Sanitization Example
+    {
+      "homeId": "131",
+      "userIds": ["2", 10]
+    }
+    ```
+
+
 - To run the solution directly, clone the backend folder and follow the steps
 
   - Install the dependencies by going to the homellc-api folder.
@@ -651,14 +676,22 @@ docker-compose -f docker-compose.initial.yml up --build -d
         private userHomeRelationRepository: Repository<UserHomeRelation>
       ) {}
 
-      findByUser(userId: number, page: number, pageSize: number) {
-        return this.homeRepository
+      async findByUser(userId: number, page: number, pageSize: number) {
+        const [results, total] = await this.homeRepository
           .createQueryBuilder("home")
           .innerJoin("user_home_relation", "uhr", "uhr.home_id = home.id")
           .where("uhr.user_id = :userId", { userId })
           .skip((page - 1) * pageSize)
           .take(pageSize)
-          .getMany();
+          .getManyAndCount();
+        const totalPages = Math.ceil(total / pageSize);
+
+        return {
+          results,
+          total,
+          currentPage: page,
+          totalPages,
+        };
       }
 
       async updateUsers(homeId: number, userIds: number[]) {

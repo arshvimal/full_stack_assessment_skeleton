@@ -13,14 +13,22 @@ export class HomeService {
     private userHomeRelationRepository: Repository<UserHomeRelation>,
   ) {}
 
-  findByUser(userId: number, page: number, pageSize: number) {
-    return this.homeRepository
+  async findByUser(userId: number, page: number, pageSize: number) {
+    const [results, total] = await this.homeRepository
       .createQueryBuilder('home')
       .innerJoin('user_home_relation', 'uhr', 'uhr.home_id = home.id')
       .where('uhr.user_id = :userId', { userId })
       .skip((page - 1) * pageSize)
       .take(pageSize)
-      .getMany();
+      .getManyAndCount();
+    const totalPages = Math.ceil(total / pageSize);
+
+    return {
+      results,
+      total,
+      currentPage: page,
+      totalPages,
+    };
   }
 
   async updateUsers(homeId: number, userIds: number[]) {
