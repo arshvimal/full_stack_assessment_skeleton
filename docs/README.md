@@ -202,6 +202,7 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 - (Optional, Recommended) Drop the `user_home` table.
   - Now that all the data has been normalized, we can get rid of the original table.
+  
     ```sql
     DROP TABLE IF EXISTS user_home;
     ```
