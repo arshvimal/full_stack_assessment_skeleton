@@ -1117,11 +1117,11 @@ docker-compose -f docker-compose.initial.yml up --build -d
         );
         ```
 
-      - Now that the app is done, we can run it with the following command.
+  - Now that the app is done, we can run it with the following command.
 
-        ```bash
-        npm run dev
-        ```
+    ```bash
+    npm run dev
+    ```
 
 ## 3. Backend API development on Node
 
