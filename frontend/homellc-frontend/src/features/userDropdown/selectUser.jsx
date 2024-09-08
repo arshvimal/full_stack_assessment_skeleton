@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit"
 
 const initialState = {
-  selectedUser: {},
+  selectedUser: null,
 }
 
 export const userDropdownSlice = createSlice({

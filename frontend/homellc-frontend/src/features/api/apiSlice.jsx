@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 export const homellcApi = createApi({
   reducerPath: 'homellcApi',
   baseQuery: fetchBaseQuery({ baseUrl: 'http://127.0.0.1:3000' }),
+  keepUnusedDataFor: 300,
   endpoints: (builder) => ({
     findAllUsers: builder.query({
       query: () => '/user/find-all',
@@ -23,4 +24,4 @@ export const homellcApi = createApi({
   }),
 });
 
-export const { useFindAllUsersQuery, useLazyFindHomesByUserQuery, useLazyFindUsersByHomeQuery, useUpdateHomeUsersMutation } = homellcApi;
+export const { useFindAllUsersQuery, useFindUsersByHomeQuery, useLazyFindHomesByUserQuery, useLazyFindUsersByHomeQuery, useUpdateHomeUsersMutation } = homellcApi;

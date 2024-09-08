@@ -1,9 +1,9 @@
-import { createSlice, current } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   homesByUser: [],
   currentPage: 1,
-  totalPages: {},
+  totalPages: 1,
   pageSize: 50,
 };
 
@@ -13,6 +13,9 @@ const homesByUserSlice = createSlice({
   reducers: {
     setHomesByUser: (state, action) => {
       state.homesByUser = action.payload;
+    },
+    clearHomesByUser: (state) => {
+      state.homesByUser = [];
     },
     setCurrentPage: (state, action) => {
       state.currentPage = action.payload;
@@ -26,5 +29,5 @@ const homesByUserSlice = createSlice({
   },
 });
 
-export const { setHomesByUser, setCurrentPage, setTotalPages, setPageSize } = homesByUserSlice.actions;
+export const { setHomesByUser, clearHomesByUser, setCurrentPage, setTotalPages, setPageSize } = homesByUserSlice.actions;
 export default homesByUserSlice.reducer;

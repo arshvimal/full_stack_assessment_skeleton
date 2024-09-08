@@ -135,6 +135,8 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 ### solution
 
+- As requested, the SQL script containing all the changes is located in the `./sql` directory in the file `99_final_db_dump.sql`.
+
 - Before we solve the problem, lets go over how to solve it. We have been provided all the data in `user_home` table. Going over it, we can see that the user data and house data is repeating. This is not optimal, so we will seperate the houses and the users into different tables, and then create a third table to keep track of the user-home relations.
 
 - First we have to refactor and normalize the data into different resonable tables. For that, lets go ahead and create the various tables.
@@ -201,8 +203,9 @@ docker-compose -f docker-compose.initial.yml up --build -d
     ```
 
 - (Optional, Recommended) Drop the `user_home` table.
+
   - Now that all the data has been normalized, we can get rid of the original table.
-  
+
     ```sql
     DROP TABLE IF EXISTS user_home;
     ```
@@ -391,7 +394,6 @@ docker-compose -f docker-compose.initial.yml up --build -d
       "userIds": ["2", 10]
     }
     ```
-
 
 - To run the solution directly, clone the backend folder and follow the steps
 
