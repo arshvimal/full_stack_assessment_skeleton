@@ -4,12 +4,15 @@ export const homellcApi = createApi({
   reducerPath: 'homellcApi',
   baseQuery: fetchBaseQuery({ baseUrl: 'http://127.0.0.1:3000' }),
   keepUnusedDataFor: 300,
+  tagTypes: ['User', 'Home'],
   endpoints: (builder) => ({
     findAllUsers: builder.query({
       query: () => '/user/find-all',
+      providesTags: ['User'],
     }),
     findHomesByUser: builder.query({
       query: ({ userId, page = 1, pageSize = 50 }) => `/home/find-by-user/${userId}?page=${page}&pageSize=${pageSize}`,
+      providesTags: ['Home'],
     }),
     findUsersByHome: builder.query({
       query: (homeId) => `/user/find-by-home/${homeId}`,
@@ -20,6 +23,7 @@ export const homellcApi = createApi({
         method: 'PUT',
         body: { homeId, userIds },
       }),
+      invalidatesTags: ['Home'],
     }),
   }),
 });

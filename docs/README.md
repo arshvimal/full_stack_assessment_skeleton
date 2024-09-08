@@ -305,7 +305,823 @@ docker-compose -f docker-compose.initial.yml up --build -d
 
 ### solution
 
-> explain briefly your solution for this problem here
+- Notes:
+
+  - The tech stack used is Vite, TailwindCSS, Redux Toolkit and RTK Query.
+
+- To run the solution, clone the `./frontend` directory and follow the steps:
+
+  - Go to `homellc-frontend` directory
+
+    ```bash
+    cd homellc_frontend
+    ```
+
+  - Install dependencies
+
+    ```bash
+    npm install
+    ```
+
+  - Run the project
+
+    ```bash
+    npm run dev
+    ```
+
+- The project is mostly divided into 4 components. Additionally, components have Slices from Redux Toolkit to handle state. Basic api fetch error handling is also implemented.
+
+- Here is the overview of the main problem solving points:
+
+  - **Homes for User Page:**
+
+    - The page displays homes based on what homes are stored in the state.
+    - Uses a user dropdown and pages to query the api.
+    - Skeletons are visisble whenever the homes are empty in the state.
+
+  - **Edit User Modal:**
+    - Each home card have an `Edit User` button which opens the modal.
+    - The modal has controlled checboxes (state is stored in the `editUser` Slice). The checkboxes show what users are currently assigned to a house and you can edit and save them.
+    - When none of the checkboxes are checked, an error is shown and the `Save` button is disabled.
+    - `Cancel` button discards any changes.
+
+- Instructions:
+
+  - First, set up a Vite project and then install and configure Radix Toolkit, TailwindCSS and react-loading-skeleton.
+
+    - Create a Vite project and install the dependencies
+
+      ```bash
+      npm create vite@latest homellc-frontend -- --template react
+      cd homellc-frontend
+      npm install -D @reduxjs/toolkit tailwindcss postcss autoprefixer react-loading-skeleton react-redux
+      ```
+
+    - Configure TailwindCSS
+
+      - Initialize TailwindCss
+
+        ```bash
+        npx tailwindcss init -p
+        ```
+
+      - Add `content` to `tailwind.config.js` file as descirbed in the Tailwind docs.
+
+        ```js
+        export default {
+          content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+          theme: {
+            extend: {},
+          },
+          plugins: [],
+        };
+        ```
+
+      - Add the `@tailwind` directives for each of Tailwind’s layers to the start of the `./src/index.css` file.
+
+        ```css
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+        ```
+
+      - I have also gone ahead and added some custom colors that I used for the project in `tailwind.config.js` under `theme.extend.colors`.
+
+        ```js
+        export default {
+          content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+          theme: {
+            extend: {
+              colors: {
+                primary: "#BA4F7D",
+                primaryMuted: "#DAC8D0",
+                secondary: "#55444B",
+                secondaryMuted: "#E8E3E5",
+              },
+            },
+          },
+          plugins: [require("@tailwindcss/forms")],
+        };
+        ```
+
+    - Create and configure a Redux Store and RTK Query
+
+      - Create a `store.jsx` file in `./src/app` directory
+
+        ```jsx
+        export const store = configureStore({
+          reducer: {},
+        });
+        ```
+
+      - Create an `api` directory in `./src/features` and add `apiSlice.jsx` to it. Here we will configure the endpoints for our api and add tags to manage caching.
+
+        ```jsx
+        export const homellcApi = createApi({
+          reducerPath: "homellcApi",
+          baseQuery: fetchBaseQuery({ baseUrl: "http://127.0.0.1:3000" }),
+          keepUnusedDataFor: 300,
+          tagTypes: ["User", "Home"],
+          endpoints: (builder) => ({
+            findAllUsers: builder.query({
+              query: () => "/user/find-all",
+              providesTags: ["User"],
+            }),
+            findHomesByUser: builder.query({
+              query: ({ userId, page = 1, pageSize = 50 }) =>
+                `/home/find-by-user/${userId}?page=${page}&pageSize=${pageSize}`,
+              providesTags: ["Home"],
+            }),
+            findUsersByHome: builder.query({
+              query: (homeId) => `/user/find-by-home/${homeId}`,
+            }),
+            updateHomeUsers: builder.mutation({
+              query: ({ homeId, userIds }) => ({
+                url: `/home/update-users`,
+                method: "PUT",
+                body: { homeId, userIds },
+              }),
+              invalidatesTags: ["Home"],
+            }),
+          }),
+        });
+
+        export const {
+          useFindAllUsersQuery,
+          useFindUsersByHomeQuery,
+          useLazyFindHomesByUserQuery,
+          useLazyFindUsersByHomeQuery,
+          useUpdateHomeUsersMutation,
+        } = homellcApi;
+        ```
+
+      - Now add the `homellcApi` reducer to the store in `./src/app/store.jsx`.
+        ```jsx
+        export const store = configureStore({
+          reducer: {
+            [homellcApi.reducerPath]: homellcApi.reducer,
+          },
+          middleware: (getDefaultMiddleware) =>
+            getDefaultMiddleware().concat(homellcApi.middleware),
+        });
+        ```
+
+    - Now that Radix and RTK Query our set up, lets create some Slices that will provide state for our components. The reducers in the slices will give us control over how we manage the data in the state.
+
+      - Create `editUserSlice.jsx` in `./src/features/editUserForHome` directory.
+
+        ```jsx
+        const initialState = {
+          checkedUsers: [],
+          selectedHomeToEdit: null,
+        };
+
+        export const editUsersSlice = createSlice({
+          name: "editUsers",
+          initialState,
+          reducers: {
+            checkUsers: (state, action) => {
+              state.checkedUsers = action.payload;
+            },
+            checkUser: (state, action) => {
+              state.checkedUsers.push(action.payload);
+            },
+            uncheckUser: (state, action) => {
+              state.checkedUsers = state.checkedUsers.filter(
+                (user) => user.id !== action.payload.id
+              );
+            },
+            clearCheckedUsers: (state) => {
+              state.checkedUsers = [];
+            },
+            selectHomeToEdit: (state, action) => {
+              state.selectedHome = action.payload;
+            },
+          },
+        });
+
+        export const {
+          checkUsers,
+          checkUser,
+          selectHomeToEdit,
+          uncheckUser,
+          clearCheckedUsers,
+        } = editUsersSlice.actions;
+        export default editUsersSlice.reducer;
+        ```
+
+      - Create `homesByUserSlice.jsx` in `./src/features/homesByUser` directory.
+
+        ```jsx
+        const initialState = {
+          homesByUser: [],
+          currentPage: 1,
+          totalPages: 1,
+          pageSize: 50,
+        };
+
+        const homesByUserSlice = createSlice({
+          name: "homesByUser",
+          initialState,
+          reducers: {
+            setHomesByUser: (state, action) => {
+              state.homesByUser = action.payload;
+            },
+            clearHomesByUser: (state) => {
+              state.homesByUser = [];
+            },
+            setCurrentPage: (state, action) => {
+              state.currentPage = action.payload;
+            },
+            setTotalPages: (state, action) => {
+              state.totalPages = action.payload;
+            },
+            setPageSize: (state, action) => {
+              state.pageSize = action.payload;
+            },
+          },
+        });
+
+        export const {
+          setHomesByUser,
+          clearHomesByUser,
+          setCurrentPage,
+          setTotalPages,
+          setPageSize,
+        } = homesByUserSlice.actions;
+        export default homesByUserSlice.reducer;
+        ```
+
+      - Create `selectUser.jsx` Slice in `./src/features/userDropdown` directory.
+
+        ```jsx
+        const initialState = {
+          selectedUser: null,
+        };
+
+        export const userDropdownSlice = createSlice({
+          name: "userDropdown",
+          initialState,
+          reducers: {
+            selectUser: (state, action) => {
+              state.selectedUser = action.payload;
+            },
+          },
+        });
+
+        export const { selectUser } = userDropdownSlice.actions;
+        export default userDropdownSlice.reducer;
+        ```
+
+      - Now we can import and register the reducers in the store ( _/src/app/store.jsx_ ) .
+
+        ```jsx
+        import editUsers from "../features/editUserForHome/editUsersSlice";
+        import userDropdown from "../features/userDropdown/selectUser";
+        import homesByUser from "../features/homesByUser/homesByUserSlice";
+
+        export const store = configureStore({
+          reducer: {
+            [homellcApi.reducerPath]: homellcApi.reducer,
+            editUsers,
+            userDropdown,
+            homesByUser,
+          },
+          middleware: (getDefaultMiddleware) =>
+            getDefaultMiddleware().concat(homellcApi.middleware),
+        });
+        ```
+
+    - Now let's go ahead and build out our components. The entire app is built upon 4 components: EditUserModal, HomeCard, UserDropdown and Paginatiton. The names of the components should explain their functionality.
+
+      - **Edit User Modal Component:**
+
+        - Create the `EditUserModal` function in the `edit-user-modal.jsx` file in `./src/components` directory.
+
+        - Here first, we will create a state for checking if we are saving the users or not. This will help us control the colors and disable elements to make the app feel responsive.
+
+          ```jsx
+          const [saveLoading, setSaveLoading] = useState(false);
+          ```
+
+        - Now we will import the various functions from apiSlice to call the endpoints, functions from our `editUserSlice.jsx` file to control our checkboxes and call `useSelector` to consume the various values we will use in the component.
+
+          ```jsx
+          const [updateUsersForHome] = useUpdateHomeUsersMutation();
+          const [getHomesByUser] = useLazyFindHomesByUserQuery();
+          const dispatch = useDispatch();
+          const editUsers = useSelector((state) => state.editUsers);
+          const selectedHome = editUsers.selectedHome;
+          const checkedUsers = editUsers.checkedUsers;
+          const selectedUser = useSelector(
+            (state) => state.userDropdown.selectedUser
+          );
+          const {
+            data: allUsers,
+            isLoading: allUsersLoading,
+            error: allUsersError,
+          } = useFindAllUsersQuery();
+          ```
+
+        - Create the various handlers for the buttons in the component.
+
+          ```jsx
+          const handleCheckboxChange = (userId) => {
+            if (checkedUsers.map((u) => u.id).includes(userId)) {
+              dispatch(uncheckUser({ id: userId }));
+            } else {
+              dispatch(checkUser({ id: userId }));
+            }
+          };
+
+          const handleCancel = () => {
+            dispatch(clearCheckedUsers());
+            dispatch(selectHomeToEdit(null));
+          };
+
+          const handleSave = async () => {
+            setSaveLoading(true);
+            const userIds = checkedUsers.map((user) => user.id);
+            const homeId = selectedHome.id;
+            await updateUsersForHome({ homeId, userIds });
+            dispatch(selectHomeToEdit(null));
+            dispatch(clearCheckedUsers());
+            const homes = await getHomesByUser({
+              userId: selectedUser.id,
+            }).unwrap();
+            dispatch(setHomesByUser(homes));
+            setSaveLoading(false);
+          };
+          ```
+
+        - And return the various jsx depending on the conditions. The EditUserModal will only be visible when we have selected a home. This makes it very simple to manage the visibility of the modal.
+
+          ```jsx
+          if (allUsersLoading) {
+            return (
+              <div
+                className={`fixed backdrop-blur-sm inset-0 flex items-center justify-center ${
+                  selectedHome ? "visible" : "hidden"
+                }`}
+              >
+                <dialog
+                  open={selectedHome}
+                  className="w-80 p-4 border-2 bg-white border-secondaryMuted rounded-md"
+                >
+                  <p className="text-secondary font-semibold text-xl pb-2">
+                    Getting Users
+                  </p>
+                </dialog>
+              </div>
+            );
+          } else if (allUsersError) {
+            return (
+              <div
+                className={`fixed backdrop-blur-sm inset-0 flex items-center justify-center ${
+                  selectedHome ? "visible" : "hidden"
+                }`}
+              >
+                <dialog
+                  open={selectedHome}
+                  className="w-80 p-4 border-2 bg-white border-secondaryMuted rounded-md"
+                >
+                  <p className="text-secondary font-semibold text-xl pb-2">
+                    Error
+                  </p>
+                  <p className="text-red-700 text-sm font-semibold pb-2">
+                    An error occured while fetching users
+                  </p>
+                </dialog>
+              </div>
+            );
+          } else {
+            return (
+              <div
+                className={`fixed backdrop-blur-sm inset-0 flex items-center justify-center ${
+                  selectedHome ? "visible" : "hidden"
+                }`}
+              >
+                <dialog
+                  open={selectedHome}
+                  className="w-80 p-4 border-2 bg-white border-secondaryMuted rounded-md"
+                >
+                  <p className="text-secondary font-semibold text-xl pb-2">
+                    Modify Users{" "}
+                  </p>
+                  {allUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center mb-1 text-secondary"
+                    >
+                      <input
+                        disabled={saveLoading}
+                        className={`w-4 h-4 rounded-sm bg-white ${
+                          saveLoading
+                            ? `border-secondaryMuted text-primaryMuted focus:ring-primaryMuted`
+                            : `border-secondary text-primary focus:ring-primary`
+                        } `}
+                        type="checkbox"
+                        checked={checkedUsers
+                          .map((u) => u.id)
+                          .includes(user.id)}
+                        onChange={() => handleCheckboxChange(user.id)}
+                        id={user.id}
+                        name={user.username}
+                      />
+                      <label
+                        className="ms-2 text-sm font-medium"
+                        htmlFor={user.id}
+                      >
+                        {user.username}
+                      </label>
+                    </div>
+                  ))}
+                  <p
+                    className={`text-red-700 text-sm font-semibold pb-2 ${
+                      checkedUsers < 1 ? "visible" : "hidden"
+                    }`}
+                  >
+                    At least one user must be selected
+                  </p>
+                  <div className="flex justify-end mt-4">
+                    <button
+                      disabled={saveLoading}
+                      onClick={handleCancel}
+                      className={`w-18 h-8 bg-white text-sm ${
+                        saveLoading
+                          ? `text-secondaryMuted border-secondaryMuted`
+                          : `text-secondary border-secondary`
+                      } px-4 py-1 rounded-md me-4`}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={saveLoading}
+                      onClick={handleSave}
+                      className={`w-18 h-8 ${
+                        saveLoading || checkedUsers < 1
+                          ? `bg-primaryMuted`
+                          : `bg-primary`
+                      } text-sm text-white px-4 py-1 rounded-md`}
+                    >
+                      {saveLoading ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </dialog>
+              </div>
+            );
+          }
+          ```
+
+      - **Home Card Component:**
+
+        - Create `home-card.jsx` in `./src/components` an create the `HomeCard` function.
+
+          ```jsx
+          function HomeCard({ home }) {
+            const dispatch = useDispatch();
+            const [getUsersByHome, { error }] = useLazyFindUsersByHomeQuery();
+            const [gettingUsers, setGettingUsers] = useState(false);
+          }
+          ```
+
+        - Create a button handler for `editUsers`.
+
+          ```jsx
+          const editUsers = async () => {
+            setGettingUsers(true);
+            const selectedUsers = await getUsersByHome(home.id).unwrap();
+            dispatch(selectHomeToEdit(home));
+            dispatch(checkUsers(selectedUsers));
+            setGettingUsers(false);
+          };
+          ```
+
+        - Return the jsx.
+
+          ```jsx
+          return (
+            <div className="p-4 border-2 border-secondaryMuted text-secondary min-w-48 rounded-md">
+              <p className="font-black text-secondary text-2xl">
+                $ {home.list_price}
+              </p>
+              <p className="font-bold">{home.street_address}</p>
+              <p className="font-semibold text-secondary">
+                {home.state}, {home.zip}
+              </p>
+              <p className="font-medium">
+                {home.sqft} ft{"\u00B2"}{" "}
+              </p>
+              <div className="flex justify-start space-x-2 mt-1">
+                <div className="flex bg-primaryMuted text-secondary px-2 py-1 rounded-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="icon icon-tabler icons-tabler-outline icon-tabler-bed"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M7 9m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" />
+                    <path d="M22 17v-3h-20" />
+                    <path d="M2 8v9" />
+                    <path d="M12 14h10v-2a3 3 0 0 0 -3 -3h-7v5z" />
+                  </svg>
+                  <p className="font-medium pl-1">{home.beds} </p>
+                </div>
+                <div className="flex bg-primaryMuted text-secondary px-2 py-1 rounded-lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="icon icon-tabler icons-tabler-outline icon-tabler-bath"
+                  >
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                    <path d="M4 12h16a1 1 0 0 1 1 1v3a4 4 0 0 1 -4 4h-10a4 4 0 0 1 -4 -4v-3a1 1 0 0 1 1 -1z" />
+                    <path d="M6 12v-7a2 2 0 0 1 2 -2h3v2.25" />
+                    <path d="M4 21l1 -1.5" />
+                    <path d="M20 21l-1 -1.5" />
+                  </svg>
+                  <p className="font-medium pl-1">{home.baths} </p>
+                </div>
+              </div>
+              <div>
+                <button
+                  disabled={gettingUsers}
+                  onClick={editUsers}
+                  className={`w-full ${
+                    gettingUsers || error ? `bg-primaryMuted` : `bg-primary`
+                  }  text-white rounded-md mt-2`}
+                >
+                  {error
+                    ? "API Error..."
+                    : gettingUsers
+                    ? "Please Wait..."
+                    : "Edit Users"}
+                </button>
+              </div>
+            </div>
+          );
+          ```
+
+      - **User Dropdown Component:**
+
+        - Add the `UserDropdown` function in `/src/components`.
+
+          ```jsx
+          function UserDropdown() {
+            const {
+              data: allUsers,
+              isLoading: allUsersLoading,
+              error: allUsersError,
+            } = useFindAllUsersQuery();
+            const [getHomesByUser, { error: findHomesByUserError }] =
+              useLazyFindHomesByUserQuery();
+            const currentPage = useSelector(
+              (state) => state.homesByUser.currentPage
+            );
+            const dispatch = useDispatch();
+
+            const handleChange = async (e) => {
+              dispatch(clearHomesByUser());
+              dispatch(setCurrentPage(1));
+              const selectedUser = allUsers.find(
+                (user) => user.id === parseInt(e)
+              );
+              dispatch(selectUser(selectedUser));
+              const homes = await getHomesByUser(
+                { userId: selectedUser.id, page: currentPage },
+                true
+              ).unwrap();
+              dispatch(setHomesByUser(homes));
+              dispatch(setTotalPages(homes.totalPages));
+            };
+
+            return (
+              <>
+                <div
+                  className={`fixed backdrop-blur-sm inset-0 flex items-center justify-center ${
+                    findHomesByUserError ? "visible" : "hidden"
+                  }`}
+                >
+                  <dialog
+                    open={findHomesByUserError}
+                    className="w-80 p-4 border-2 bg-white border-secondaryMuted rounded-md"
+                  >
+                    <p className="text-secondary font-semibold text-xl">
+                      API Error Fetching Homes
+                    </p>
+                  </dialog>
+                </div>
+                <select
+                  disabled={allUsersLoading || allUsersError}
+                  defaultValue={0}
+                  onChange={(e) => handleChange(e.target.value)}
+                  className="h-10 w-32 rounded-md px-2 text-sm font-semibold text-secondary"
+                >
+                  <option value={0} disabled hidden>
+                    {allUsersError
+                      ? "API Error"
+                      : allUsersLoading
+                      ? "Loading..."
+                      : "Select User"}
+                  </option>
+                  {allUsersLoading || allUsersError ? (
+                    <></>
+                  ) : (
+                    allUsers.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.username}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </>
+            );
+          }
+
+          export default UserDropdown;
+          ```
+
+      - **Pagination Component:**
+
+        - Add `Pagination()` function in `/src/components/pagination`
+
+          ```jsx
+          function Pagination() {
+            const currentPage = useSelector(
+              (state) => state.homesByUser.currentPage
+            );
+            const totalPages = useSelector(
+              (state) => state.homesByUser.totalPages
+            );
+            const selectedUser = useSelector(
+              (state) => state.userDropdown.selectedUser
+            );
+            const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+            const dispatch = useDispatch();
+            const [getHomesByUser] = useLazyFindHomesByUserQuery();
+
+            const handleChange = async (page) => {
+              dispatch(setCurrentPage(page));
+              dispatch(clearHomesByUser());
+              const homes = await getHomesByUser(
+                { userId: selectedUser.id, page: page },
+                true
+              ).unwrap();
+              dispatch(setHomesByUser(homes));
+            };
+
+            return (
+              <div className="flex justify-center items-center space-x-2">
+                {pages.map((page) => (
+                  <button
+                    onClick={() => handleChange(page)}
+                    key={page}
+                    className={`${
+                      currentPage === page
+                        ? "bg-primary text-white"
+                        : "bg-white text-primary"
+                    } px-4 py-2 rounded-md`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+            );
+          }
+          export default Pagination;
+          ```
+
+    - Now that the components are done, import them into `App.jsx`
+
+      - Call the `useSelector()` to consume the homes for a user and what the selected user is.
+
+        ```jsx
+        const homes = useSelector((state) => state.homesByUser.homesByUser);
+        const selectedUser = useSelector(
+          (state) => state.userDropdown.selectedUser
+        );
+        ```
+
+      - Create the `HomeCards()` function in `App()` that will return jsx for Homes or return Skeletons based on if the homes are availaible or if a user is selected.
+
+        ```jsx
+        function HomeCards() {
+          if (homes.results) {
+            return (
+              <div className="px-8 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {homes.results.map((home) => (
+                  <div
+                    key={home.id}
+                    className="flex-grow items-center justify-center"
+                  >
+                    <HomeCard home={home} />
+                  </div>
+                ))}
+              </div>
+            );
+          } else {
+            return (
+              <div className="px-8 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {Array.from({ length: 50 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border-2 border-secondaryMuted text-secondary min-w-48 rounded-md"
+                  >
+                    <Skeleton className="h-7 w-4/6" />
+                    <Skeleton className="h-5 w-4/5" />
+                    <Skeleton className="h-5 w-3/5" />
+                    <Skeleton className="h-5 w-2/5" />
+                    <div className="flex justify-start space-x-2 mt-1">
+                      <Skeleton className="bg-primaryMuted h-7 w-12" />
+                      <Skeleton className="bg-primaryMuted h-7 w-12" />
+                    </div>
+                    <div>
+                      <button
+                        disabled
+                        className=" w-full bg-primaryMuted text-white rounded-md mt-2"
+                      >
+                        Loading...
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          }
+        }
+        ```
+
+      - Create a `Pages()` function to return pages if a user is selected.
+
+        ```jsx
+        function Pages() {
+          if (selectedUser != null) {
+            return (
+              <div className="flex text-secondary justify-center pt-4">
+                <Pagination
+                  currentPage={homes.currentPage}
+                  totalPages={homes.totalPages}
+                />
+              </div>
+            );
+          }
+        }
+        ```
+
+      - Create a `Homes()` function to return `HomeCards` when there is a selected user, or else it will display a message to select a user.
+
+        ```jsx
+        function Homes() {
+          if (selectedUser != null) {
+            return <HomeCards />;
+          } else {
+            return (
+              <div className="flex items-center justify-center">
+                <p className="text-secondary font-bold text-2xl">
+                  Select a user to view homes
+                </p>
+              </div>
+            );
+          }
+        }
+        ```
+
+      - Now finally return the main app.
+
+        ```jsx
+        return (
+          <div className="grid ">
+            <EditUserModal />
+            <div className="flex items-center justify-center h-16">
+              <UserDropdown />
+            </div>
+            <div className="w-11/12 m-auto h-0.5 bg-secondaryMuted"></div>
+            <div>
+              <Pages />
+              <Homes />
+            </div>
+          </div>
+        );
+        ```
+
+      - Now that the app is done, we can run it with the following command.
+
+        ```bash
+        npm run dev
+        ```
 
 ## 3. Backend API development on Node
 
@@ -409,7 +1225,7 @@ docker-compose -f docker-compose.initial.yml up --build -d
     npm run start:dev
     ```
 
-- To create the backend, let's followed the recommended tech stack and create a REST API with NestJS and TypeORM. Let's set up the project.
+- Instructions:
 
   - Install NestJS CLI
 

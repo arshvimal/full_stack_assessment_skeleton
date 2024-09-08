@@ -8,13 +8,13 @@ import Skeleton from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 
 function App() {
-  var homes = useSelector((state) => state.homesByUser.homesByUser)
+  const homes = useSelector((state) => state.homesByUser.homesByUser)
   const selectedUser = useSelector((state) => state.userDropdown.selectedUser);
 
   function Pages(){
     if(selectedUser!=null){
       return(
-        <div className="flex text-secondary justify-center pt-2">
+        <div className="flex text-secondary justify-center pt-4">
           <Pagination currentPage={homes.currentPage} totalPages={homes.totalPages} />
         </div>
       )
@@ -24,18 +24,20 @@ function App() {
   function HomeCards(){
     if(homes.results){
       return(
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="px-8 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {homes.results.map((home) => (
-            <HomeCard key={home.id} home={home} />
+            <div key={home.id} className="flex-grow items-center justify-center">
+            <HomeCard home={home} />
+            </div>
           ))
           }
         </div>
       )
     } else{
       return(
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="px-8 pt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {Array.from({ length: 50 }).map((_, index) => (
-            <div key={index} className="p-4 border-2 border-secondaryMuted text-secondary max-w-96 min-w-64 rounded-md">
+            <div key={index} className="p-4 border-2 border-secondaryMuted text-secondary min-w-48 rounded-md">
               <Skeleton className="h-7 w-4/6"/>
               <Skeleton className="h-5 w-4/5"/>
               <Skeleton className="h-5 w-3/5"/>
@@ -67,6 +69,7 @@ function App() {
       )
     }
   }
+  
   return (
     <div className="grid ">
       <EditUserModal/>

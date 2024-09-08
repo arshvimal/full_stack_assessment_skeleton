@@ -1,24 +1,22 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { selectEditHome } from '../features/editUserForHome/editUsersSlice';
+import { selectHomeToEdit, checkUsers } from '../features/editUserForHome/editUsersSlice';
 import { useLazyFindUsersByHomeQuery } from '../features/api/apiSlice';
-import { setUsers } from '../features/editUserForHome/editUsersSlice';
 
 function HomeCard({home}) {
   const dispatch = useDispatch()
-  const [getUsersByHome] = useLazyFindUsersByHomeQuery()
+  const [getUsersByHome, {error}] = useLazyFindUsersByHomeQuery()
   const [gettingUsers, setGettingUsers] = useState(false)
 
   const editUsers = async () => {
     setGettingUsers(true)
     const selectedUsers = await getUsersByHome(home.id).unwrap()
-    dispatch(selectEditHome(home))
-    dispatch(setUsers(selectedUsers))
+    dispatch(selectHomeToEdit(home))
+    dispatch(checkUsers(selectedUsers))
     setGettingUsers(false)
   }
-  
   return (
-    <div className="p-4 border-2 border-secondaryMuted text-secondary max-w-96 min-w-64 rounded-md">
+    <div className="p-4 border-2 border-secondaryMuted text-secondary min-w-48 rounded-md">
       <p className="font-black text-secondary text-2xl">$ {home.list_price}</p>
       <p className="font-bold">{home.street_address}</p>
       <p className="font-semibold text-secondary">{home.state}, {home.zip}</p>
@@ -34,8 +32,8 @@ function HomeCard({home}) {
         </div>
       </div>
       <div>
-      <button disabled={gettingUsers} onClick={editUsers} className={`w-full ${gettingUsers? `bg-primaryMuted`:`bg-primary`}  text-white rounded-md mt-2`}>
-      {gettingUsers? 'Please Wait...': 'Edit Users'}
+      <button disabled={gettingUsers} onClick={editUsers} className={`w-full ${gettingUsers||error? `bg-primaryMuted`:`bg-primary`}  text-white rounded-md mt-2`}>
+      {error?('API Error...'):(gettingUsers? 'Please Wait...': 'Edit Users')}
       </button>
       </div>
     </div>
