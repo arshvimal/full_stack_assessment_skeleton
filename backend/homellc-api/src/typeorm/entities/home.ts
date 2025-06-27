@@ -14,7 +14,7 @@ export class Home {
   @Column({ length: 10, nullable: true })
   zip: string;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: 'double precision', nullable: true })
   sqft: number;
 
   @Column({ type: 'int', nullable: true })
@@ -23,6 +23,6 @@ export class Home {
   @Column({ type: 'int', nullable: true })
   baths: number;
 
-  @Column({ type: 'float', nullable: true })
+  @Column({ type: 'double precision', nullable: true })
   list_price: number;
 }

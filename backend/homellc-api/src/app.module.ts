@@ -14,12 +14,12 @@ import { UserHomeRelation } from './typeorm/entities/user-home-relation';
     }),
     TypeOrmModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.getOrThrow('MYSQL_HOST'),
-        port: configService.getOrThrow('MYSQL_PORT'),
-        username: configService.getOrThrow('MYSQL_USER'),
-        password: configService.getOrThrow('MYSQL_PASSWORD'),
-        database: configService.getOrThrow('MYSQL_DATABASE'),
+        type: 'postgres',
+        host: configService.getOrThrow('PG_HOST'),
+        port: configService.getOrThrow('PG_PORT'),
+        username: configService.getOrThrow('PG_USER'),
+        password: configService.getOrThrow('PG_PASSWORD'),
+        database: configService.getOrThrow('PG_DATABASE'),
         entities: [User, Home, UserHomeRelation],
         synchronize: true,
       }),
