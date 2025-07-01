@@ -9,6 +9,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 function App() {
   const homes = useSelector((state) => state.homesByUser.homesByUser)
   const selectedUser = useSelector((state) => state.userDropdown.selectedUser);
+  const frontendHost = import.meta.env.VITE_FRONTEND_HOST
 
   function Pages(){
     if(selectedUser!=null){
@@ -72,7 +73,7 @@ function App() {
   return (
     <div className="grid ">
       <div className="flex items-center justify-center h-8 bg-primary">
-        <h1 className="text-white text-lg font-bold">Frontend Host: </h1>
+        <h1 className="text-white text-lg font-bold">Frontend Host: {frontendHost}</h1>
       </div>
       <EditUserModal/>
       <div className="flex items-center justify-center h-16">
