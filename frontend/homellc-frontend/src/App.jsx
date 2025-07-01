@@ -1,6 +1,5 @@
 import UserDropdown from "./components/user-dropdown"
 import EditUserModal from "./components/edit-user-modal"
-import React from 'react';
 import HomeCard from "./components/home-card";
 import { useSelector } from "react-redux";
 import Pagination from "./components/pageination";
@@ -72,6 +71,9 @@ function App() {
   
   return (
     <div className="grid ">
+      <div className="flex items-center justify-center h-8 bg-primary">
+        <h1 className="text-white text-lg font-bold">Frontend Host: </h1>
+      </div>
       <EditUserModal/>
       <div className="flex items-center justify-center h-16">
       <UserDropdown />
